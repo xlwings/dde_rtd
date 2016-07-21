@@ -135,7 +135,11 @@ namespace DdeRTD
 			{
 				RtdServerUpdateNotify notify = new RtdServerUpdateNotify(delegate()
 				{
-					this.staleTickers.Add(TopicID);
+                    lock (this.staleTickers)
+                    {
+                        this.staleTickers.Add(TopicID);
+                    }
+					
 					if(!this.notified)
 					{
 						this.notified = true;
@@ -157,7 +161,10 @@ namespace DdeRTD
 				{
 					ticker.Unsubscribe();
 					tickers.Remove(TopicID);
-					staleTickers.Remove(TopicID);
+                    lock (this.staleTickers)
+                    {
+                        staleTickers.Remove(TopicID);
+                    }
 				}
 			}
 		}
@@ -171,10 +178,14 @@ namespace DdeRTD
 		{
 			this.notified = false;
 
-			var stale = this.staleTickers;
-			this.staleTickers = new HashSet<int>();
+            int[] stale;
+            lock (this.staleTickers)
+            {
+                stale = this.staleTickers.ToArray();
+                this.staleTickers.Clear();
+            }
 
-			TopicCount = stale.Count;
+			TopicCount = stale.Length;
 			object[,] data = new object[2, TopicCount];
 			int n = 0;
 			foreach(var id in stale)
